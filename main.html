@@ -1,0 +1,106 @@
+<html>
+    <head>
+        <link rel="stylesheet" type="text/css" href="css/css3-buttons/buttons/buttons.css" >
+        <style>
+            body {
+                margin: 0;
+                padding: 0;
+                background-color: #99ff33;
+            }
+            .room_container {
+                position: relative;
+                width: 300px;
+                padding: 10px;
+                background-color: white;
+                border: 1px solid #99ff66;
+                border-radius: 10px;
+                min-height: 150px;
+                margin-left: auto;
+                margin-right: auto;
+                margin-top: 150px;
+
+            }
+            .room_container h3 {
+                font: 15px Calibri, Arial, sans-serif;
+                color: #009933;
+                text-align: center;;
+                margin-bottom: -5px;
+                margin-top: 20px;
+            }
+            .room {
+                width: 280px;
+                height: 30px;
+                padding: 10px;
+                margin-bottom: 10px;
+            }
+            .room .empty {
+                width: 100px;
+                float: right;
+            }
+            .room .index {
+                width: 200px;
+                float: left;
+            }
+
+            .room > img {
+                float: right;
+                margin-left: 10px;
+            }
+            .room > p {
+                position: relative;
+                top: -15px;
+            }
+
+            .create {
+                width: 200px;
+                height: 25px;
+                color: white !important;
+                position: relative;
+                left: 50%;
+                margin-top: 10px;
+                margin-left: -110px;
+                padding: 10px;
+                text-align: center;
+            }
+            hr {
+                height: 1px;
+                background-color: #cccccc;
+                border: .5px solid #cccccc;
+            }
+            .logo {
+                width: 200px;
+                margin-left: 55px;
+                margin-bottom: 20px;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="room_container">
+            <img src="/imgs/logo.png" class="logo">
+            <div class="button blue medium create">Create Game!</div>
+            <h3>Join other people</h3>
+            <hr>
+        </div>
+    </body>
+    <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.3/jquery.min.js"></script>
+    <script>
+        var online = {{ online|safe }};
+        console.log(online);
+        $(".create").click(function () { window.location = "/new"; });
+        var index = 0;
+        for (i in online) {
+            if(online[i].length > 0){
+                var room = $("<div>").attr("class", "green button medium room");
+                room.attr("rid", i);
+                room.append($("<p>").addClass("index").text("Room #" + i));
+                for (o in online[i]) {
+                    room.append($("<img>").attr("src", "/imgs/ppl.png").addClass("ppl"));
+                }
+                room.click(function() {window.location="/game?rid=" + parseInt($(this).attr("rid"))});
+            }
+            $(".room_container").append(room);
+        }
+        if ($(".room_container").children().length == 4)
+            $(".room_container").append($("<h3>").text("There are no active rooms."));
+    </script>
+</html>

@@ -1,0 +1,520 @@
+<html>
+    <head>
+        <link rel="stylesheet" type="text/css" href="css/style.css" >
+        <link rel="stylesheet" type="text/css" href="css/css3-buttons/buttons/buttons.css" >
+    </head>
+    <body>
+        <div class="body_wrapper">
+            <div class="stat">
+                <p><div class='dot orange'></div>playing:</p>
+                <ul class="playing">
+                </ul>
+                <div class="left">Mind left: </div>
+                <hr>
+                <p><div class='dot green'></div>online:</p>
+                <ul class="online">
+                </ul>
+                <hr>
+                <div class="button blue middle logout">Leave</div>
+                <div class="button gray middle reset">Reset</div>
+            </div>
+            <div class="rules">
+                <h3>How to play: </h3>
+                <p>Find as many as brains as you can.</p>
+                <p>The number of the brick indicates the number of brains around it</p>
+                <p>Every time you find a brain, you can have one more chance to sweep</p>
+                <p>Continuous discovering brains can give you bonus score</p>
+                <p>Developer: Shin Fan</p>
+            </div>
+            <div class="score">
+
+            </div>
+            <div class="board_container">
+                <div class="button_start button green big">START!</div>
+                <div class="board_wrapper">
+                </div>            
+                <div class="cover"></div>
+            </div>
+            <div class="msg_container"><p class="msg"></p><p class="time"></p></div>
+            <div class="res win">You win: U r the mind-sweeper!</div>
+            <div class="res lose">You are sweeped!</div>
+            <img class="logo" src="imgs/logo.png">
+            <img class="score_icon single" src="imgs/score.png">
+            <img class="score_icon combo" src="imgs/combo.png">
+        </div>
+    </body>
+    <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.3/jquery.min.js"></script>
+    <script>
+    
+    
+        var tile = function () {
+            var create = function (val) {
+                var t = $("<a>")
+                .addClass("tile")
+                .attr("row", i)
+                .attr("col", j);
+                var content = $("<div>");
+                if (val == 0) {
+                    t.addClass("button big blue tile");
+                    t.css("opacity", "0.3");
+                } else if (val > 0) {
+                    if (val < 3) {
+                        t.addClass("button big green tile");
+                    } else {
+                        t.addClass("button big orange tile");
+                    }
+                    t.css("opacity", "0.7");
+                    content.text(val);
+                } else if (val == -3) { 
+                    t.addClass("button big green tile");
+                    content = $("<img>").attr("src", "imgs/brain.png");
+                } else {
+                    t.addClass("button big blue tile");
+                }
+                return t.append(content);
+            };
+            var update = function (t, val) {
+                t.children().remove();
+                var content = $("<div>");
+                if (val == 0) {
+                    t.attr("class", "button big blue tile");
+                    t.css("opacity", "0.3");
+                } else if (val > 0) {
+                    if (val < 3) {
+                        t.attr("class", "button big green tile");
+                    } else {
+                        t.attr("class", "button big orange tile");
+                    }
+                    t.css("opacity", "0.7");
+                    content.text(val);
+                } else if (val == -3) {
+                    t.addClass("button big green tile");
+                    content = $("<img>").attr("src", "imgs/brain.png");
+                } else {
+                    t.addClass("button big blue tile");
+                }
+                t.append(content);
+            }
+        
+            var highlight = function (t) {
+                t.addClass("highlight");
+            }
+            
+            var shake = function(t) {
+                t.addClass("shake");
+                setTimeout(function () {t.removeClass("shake")}, 500);
+            }
+            return {
+                create: create,
+                update: update,
+                highlight: highlight,
+                shake: shake
+            };
+        }();
+        var board = function () {
+            var content = {{ board }};
+            var size = 15;
+            var valid = function (x, y) {
+                return x >= 0 && y >= 0 && x < size && y < size;
+            };
+        
+        
+            var isInitialized = function () {
+                return $(".board_wrapper").children().length != 0;
+            }
+            var flood = function (x, y) {
+                if (!valid(x,y) || content[x][y] != -1)
+                    return;
+                var count = 0;
+                for (var i = -1; i < 2; i++) {
+                    for (var j = -1; j < 2; j++) {
+                        if (valid(x+i, y+j)
+                            && (content[x+i][y+j] == -2 || content[x+i][y+j] == -3))
+                            count++;
+                    }
+                }
+                content[x][y] = count;
+                var t = get_tile(x,y);
+                tile.update(t, count);
+                tile.highlight(t);
+            
+                if (count == 0) {
+                    flood(x-1,y)
+                    flood(x,y-1)
+                    flood(x+1,y)
+                    flood(x,y+1)
+                    flood(x+1,y+1)
+                    flood(x-1,y+1)
+                    flood(x-1,y-1)
+                    flood(x+1,y-1)
+                }
+            };
+            var move = function (x, y) {
+                $(".cover").show();
+                if (content[x][y] == -2) {
+                    content[x][y] == -3;
+                    var t = get_tile(x,y)
+                    tile.update(t, -3);
+                    tile.highlight(t);
+                    tile.shake(t);
+                    stat.score();
+                    return;
+                } else if (content[x][y] == -1) {
+                    stat.miss();
+                    flood(x,y);
+                }
+            }
+            var get_tile = function (i, j) {
+                return $($($(".board_wrapper").children()[i]).children()[j]);
+            }
+            var isReset = function (input) {
+                if (typeof(input) == 'undefined') return;
+                if (content.length == 0 && input.length > 0) return true;
+                var ret = false;
+                for (i in input) {
+                    for (j in input[i]) {
+                        if (input[i][j] != content[i][j]) {
+                            ret = true;
+                        }
+                    }
+                }
+                for (i in input) {
+                    for (j in input[i]) {
+                        if (input[i][j] == -3 || input[i][j] >= 0)
+                            ret = false;
+                    }
+                }
+                return ret;
+            }
+            var update = function (input) {
+                if (typeof(input) == 'undefined' || input.length == 0) 
+                    return;
+
+                if (isReset(input) || !isInitialized()) {
+                    // game is reset
+                    reset(input);
+                    return;
+                }
+                
+                if (typeof(content[0]) == 'undefined') return;
+                for (i in content) {
+                    for (j in content[i]) {
+                        if (content[i][j] != input[i][j]) {
+                            var t = get_tile(i,j)
+                            tile.update(t, input[i][j]);
+                            tile.highlight(t);
+                        }
+                    }
+                }
+                for (i in content) {
+                    for (j in content[i]) {
+                        content[i][j] = input[i][j];
+                    }
+                }
+            };
+            var bind_event = function () {
+                $(".tile").unbind("click");
+                $(".tile").click(function () {
+                    game.move(parseInt($(this).attr("row")), parseInt($(this).attr("col")))
+                });
+            };
+        
+            var reset = function (input) {
+                if (typeof(input) == 'undefined') 
+                    input = content;
+                $(".button_start").hide();
+                $(".res").hide();
+                content = input;
+                $(".board_wrapper").children().remove();
+                for (i in content) {
+                    var entry = $("<div>");
+                    for (j in content[i]) {
+                        var t = tile.create(content[i][j]);
+                        entry.append(t);
+                    }
+                    $(".board_wrapper").append(entry);
+                }
+                bind_event();
+                $(".board_wrapper").fadeIn("fast");
+            };
+            var get_content = function () {
+                return this.content;
+            }
+            var checked = function (x,y) {
+                return content[x][y] != -1 && content[x][y] != -2;
+            }
+            return {
+                reset: reset,
+                update: update,
+                bind: bind_event,
+                move: move,
+                checked: checked,
+                isInit: isInitialized
+            };
+        }();
+    
+        var game = function () {
+            var name = "{{ name }}";
+            var rid = {{ rid }};
+            var started = {{ playing }};
+            var init = function () {
+                if (!started) {
+                    $(".button_start").show();
+                    $(".button_start").click(start);
+
+                } else {
+                    $(".button_start").hide();
+                    update();
+                    board.reset();
+                }                
+                $(".logout").click(logout);
+                $(".reset").click(start);
+                setInterval(update, 1000);
+            }
+            var is_my_turn = function (turn) {
+                return name == turn;
+            }
+            var start = function() {
+                $.ajax({
+                    url: '/move',
+                    dataType: 'json',
+                    type: 'POST',
+                    data: {
+                        "rid": rid,
+                        'type': 'start'
+                    },
+                    success: function(ret) {
+                        $(".cover").show();
+                        $(".button_start").hide();
+                        var b = ret["board"];
+                        if (typeof(b) == 'undefined') {
+                            start();
+                        }
+                        board.reset(b);
+                    },
+                    error: function(e) {
+                        console.log(e);
+                    }
+                });
+            };
+            
+            var yield = function () {
+                console.log("yield!");
+                $.ajax({
+                    url: '/move',
+                    dataType: 'json',
+                    type: 'POST',
+                    data: {
+                        'rid': rid,
+                        'name': name,
+                        'type': 'yield'
+                    },
+                    success: function(e) {
+                        $(".time").hide();
+                        turn_start = false;
+                        update();
+                    },
+                    error: function(e) {
+                        console.log(e);
+                    }
+                });
+            }
+            var move = false;
+            var move = function (x, y) {
+                $(".tile").removeClass("highlight");
+                if (board.checked(x, y)) return;
+                $(".cover").show();
+                board.move(x, y);
+                $.ajax({
+                    url: '/move',
+                    dataType: 'json',
+                    type: 'POST',
+                    data: {
+                        'rid': rid,
+                        'name': name,
+                        'type': 'move',
+                        'x': x,
+                        'y': y
+                    },
+                    success: function(e) {
+                        if(typeof(e["board"]) == "undefined")
+                            move(x,y);
+                        else
+                            board.update(e["board"]);   
+                    },
+                    error: function(e) {
+                        console.log(e);
+                    }
+                });
+            };
+        
+          
+            var update = function () {
+                $.ajax({
+                    url: '/move',
+                    dataType: 'json',
+                    type: 'POST',
+                    data: {
+                        'type': 'update',
+                        'rid': rid
+                    },
+                    success: function(e) {
+                        if(typeof(e["board"]) == "undefined" || typeof(e["cur_player"]) == 'undefined')
+                            update();
+                        // update msg center
+                        if (is_my_turn(e["cur_player"])) {
+                            $(".msg").text("Your turn");
+                            $(".msg_container").show();
+                            $(".cover").hide();
+                            
+                        } else if (e["cur_player"] == "None") {
+                            $(".msg").text("Good to go.");
+                            $(".msg_container").show();
+                            $(".cover").hide();
+                        } else {
+                            $(".msg_container").show();
+                            $(".msg").html("Waiting for: " + e["cur_player"]);
+                            $(".cover").show();
+                        }
+                        
+                        board.update(e["board"]);    
+                        stat.update(e);
+                    },
+                    error: function(e) {
+                        console.log(e);
+                    }
+                });
+            };
+        
+        
+            var logout = function (x, y) {
+                $(".board_wrapper").fadeOut();
+                $.ajax({
+                    url: '/logout',
+                    dataType: 'json',
+                    type: 'POST',
+                    data: {
+                        'rid': rid,
+                        'name': name
+                    },
+                    success: function(e) {
+                        window.location = "/";
+                    },
+                    error: function(e) {
+                        console.log(e);
+                    }
+                });
+            };
+            return {
+                start: start,
+                move: move,
+                init: init,
+                timeout: yield
+            }
+        
+        }();
+
+
+        var stat = function () {
+            var playing = [];
+            var started = {{ playing }};
+            var left = 0;
+            var score = [];
+            var name = "{{ name }}";
+            var online = [];    
+            var online_update = function (input) {
+                if (typeof(input) == 'undefined') return;
+                $(".online").children().remove();
+                online = input;
+                for (p in online) {
+                    $(".online").append($("<li>").text(online[p]));
+                }
+            }
+            var combo = false;
+            var miss = function () {
+                combo = false;
+            }
+            var score = function () {
+                if (combo) {
+                    $(".combo").fadeIn();
+                    setTimeout(function () {$(".combo").fadeOut();}, 1000)
+                } else {
+                    $(".single").fadeIn();
+                    setTimeout(function () {$(".single").fadeOut();}, 1000)
+                }
+                combo = true;
+            }
+            var win = function () {
+                if (score.length == 1)
+                // single player
+                    return false;
+                var index = playing.indexOf(name);
+                var s = score[index];
+                var score_cp = [];
+                for (i in score) score_cp[i] = score[i];
+                score_cp.sort();
+                console.log(score_cp);
+                var max = score_cp[score_cp.length-1];
+                var sec_max = score_cp[score_cp.length-2];
+                if (max - sec_max >=  2 * left - 1) {
+                    $(".cover").show();
+
+                    if (max == s) {
+                        // you win
+                        $(".win").fadeIn();
+                    } else {
+                        // you lose
+                        $(".lose").fadeIn();
+                    }
+                }
+            }
+        
+            var score_update = function (input) {
+                if (typeof(input) == 'undefined') return;
+                playing = input["playing"];
+                left = input["left"];
+                if (left > 0) {
+                    $(".left").show();
+                    $(".left").text("Mind left: " + left);
+                } else {
+                    $(".left").hide();
+                }
+                win();
+                if (input["playing"].length != ($(".playing").children()).length / 2) {
+                    playing = input["playing"];
+                    score = input["score"];
+
+                    $(".playing").children().remove();
+                    for (var i = 0; i < playing.length; i++) {
+                        $(".playing").append($("<li>").text(playing[i]));
+                        $(".playing").append($("<li>").addClass("score_wrapper").append($("<img>").attr("src", "imgs/brain.png")).append($("<p>").addClass("score").text('× ' + score[i])));
+                    }
+                } else {
+                    playing = input["playing"];
+                    score = input["score"];
+
+                    for (i in playing) {
+                        $($(".score")[i]).text('× ' + score[i]);
+                    }
+                }   
+
+            }
+        
+        
+            var update = function (input) {
+                online_update(input["online"]);
+                score_update(input);
+            }
+            return {
+                update: update,
+                score: score,
+                miss: miss
+            }
+        }();
+
+        $(document).ready(function () {
+            game.init();
+        })
+
+    </script>
+</html>
